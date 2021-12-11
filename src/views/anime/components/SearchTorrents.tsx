@@ -7,12 +7,18 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
-import { useParams } from 'react-router'
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
+import {
+  DataGrid,
+  GridActionsCellItem,
+  GridColDef,
+  GridRenderCellParams,
+  GridRowParams,
+} from '@mui/x-data-grid'
 import QueryString from 'query-string'
 import axios from 'axios'
 import Grid from '@mui/material/Grid'
 import Popover from '@mui/material/Popover'
+import CloudDownload from '@mui/icons-material/CloudDownload'
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
@@ -62,77 +68,95 @@ export default function CustomizedDialogs({
   open: boolean
   onClose: () => void
 }) {
-  const params: { id: string } = useParams() as { id: string }
-
+  const [torrents, setTorrents] = React.useState<any[]>([])
+  const [loadingData, setLoadingData] = React.useState<boolean>(true)
   const handleClose = () => {
     onClose()
   }
-
-  const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 90 },
-    {
-      field: 'name',
-      headerName: 'Name',
-      flex: 0.3,
-      editable: false,
+  const download = React.useCallback(
+    (params: GridRowParams) => () => {
+      console.log(params)
     },
-    {
-      field: 'torrentdata',
-      headerName: 'Files',
-      renderCell: (params: GridRenderCellParams<{ files: any[] }>) => {
-        const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null)
-        const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-          setAnchorEl(event.currentTarget)
-        }
-        const handleClosePopOver = () => {
-          setAnchorEl(null)
-        }
-        const openPopover = Boolean(anchorEl)
-        const id = openPopover ? 'simple-popover' : undefined
+    [],
+  )
 
-        return (
-          <>
-            <Button onClick={handleClick}>Show Files</Button>
-            <Popover
-              id={id}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'center',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'center',
-              }}
-              onClose={handleClosePopOver}
-              open={openPopover}
-            >
-              {params?.value?.files && (
-                <div>
-                  {params.value.files.map((file: any) => (
-                    <div key={file.name}>
-                      {file.name}
-                      {' '}
-                      (
-                      {file.size}
-                      )
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Popover>
-          </>
-        )
+  const columns: GridColDef[] = React.useMemo(
+    () => [
+      { field: 'id', headerName: 'ID', width: 90 },
+      {
+        field: 'name',
+        headerName: 'Name',
+        flex: 0.3,
+        editable: false,
       },
-    },
-    {
-      field: 'seeders',
-      headerName: 'Seeders',
-      width: 100,
-    },
-  ]
+      {
+        field: 'torrentdata',
+        headerName: 'Files',
+        renderCell: (params: GridRenderCellParams<{ files: any[] }>) => {
+          const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null)
+          const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+            setAnchorEl(event.currentTarget)
+          }
+          const handleClosePopOver = () => {
+            setAnchorEl(null)
+          }
+          const openPopover = Boolean(anchorEl)
+          const id = openPopover ? 'simple-popover' : undefined
 
-  const [torrents, setTorrents] = React.useState<any[]>([])
-  const [loadingData, setLoadingData] = React.useState<boolean>(true)
+          return (
+            <>
+              <Button onClick={handleClick}>Show Files</Button>
+              <Popover
+                id={id}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'center',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'center',
+                }}
+                onClose={handleClosePopOver}
+                open={openPopover}
+              >
+                {params?.value?.files && (
+                  <div>
+                    {params.value.files.map((file: any) => (
+                      <div key={file.name}>
+                        {file.name}
+                        {' '}
+                        (
+                        {file.size}
+                        )
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Popover>
+            </>
+          )
+        },
+      },
+      {
+        field: 'seeders',
+        headerName: 'Seeders',
+        width: 100,
+      },
+      {
+        field: 'actions',
+        type: 'actions',
+        getActions: (params: any) => [
+          <GridActionsCellItem
+            icon={<CloudDownload />}
+            onClick={download(params)}
+            label="Download"
+          />,
+        ],
+      },
+    ],
+    [download],
+  )
+
   useEffect(() => {
     if (data && open) {
       setLoadingData(true)
