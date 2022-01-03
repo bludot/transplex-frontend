@@ -1,23 +1,21 @@
-import axios from 'axios'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import { styled } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid'
-import Chip from '@mui/material/Chip'
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary'
-import SearchIcon from '@mui/icons-material/Search'
-import CloudDownloadIcon from '@mui/icons-material/CloudDownload'
-import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import EventIcon from '@mui/icons-material/Event'
 import Fade from '@mui/material/Fade'
 import TvIcon from '@mui/icons-material/Tv'
 import SearchTorrents from './components/SearchTorrents'
+import AnimeManagementButtons from './components/AnimeManagementButtons'
+import { getMetadataByanidbId } from './service'
+import { IMetadata } from '../../services/api/metadata.interface'
+import EpisodeTable from './components/EpisodesTables'
 
 const Item = styled(Paper)(({ theme }) => ({
   ...theme.typography.body2,
@@ -59,39 +57,15 @@ const Anime: React.FC<any> = () => {
       background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%,rgba(0,0,0,0.3) 100%)',
     },
   }))
-  const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 90 },
-    {
-      field: 'episode',
-      headerName: 'Episode',
-      width: 150,
-      editable: false,
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 100,
-      renderCell: (params: GridRenderCellParams<String>) => {
-        switch (params.value) {
-        case 'FINISHED':
-          return <Chip label="Finished" color="primary" />
-        case 'RELEASING':
-          return <Chip label="Releasing" color="secondary" />
-        case 'NOT_YET_RELEASED':
-          return <Chip label="Not Yet Released" color="default" />
-        default:
-          return <Chip label="Unknown" color="warning" />
-        }
-      },
-    },
-  ]
+
   const params: { id: string } = useParams() as { id: string }
-  const [data, setData] = useState<any>({})
+  const [data, setData] = useState<IMetadata | any>({})
   const [torrentdialog, setTorrentdialog] = useState<boolean>(false)
+
   useEffect(() => {
     setData({})
-    axios.get(`http://localhost:1337/metadata/anime/${params.id}`).then((data: any) => {
-      setData(data.data)
+    getMetadataByanidbId(params.id.toString()).then((res: IMetadata) => {
+      setData(res)
     })
   }, [params.id])
 
@@ -102,24 +76,32 @@ const Anime: React.FC<any> = () => {
   const closeTorrentDialog = () => {
     setTorrentdialog(false)
   }
+  const Image = useMemo(
+    () => (
+      <>
+        {data.picture ? (
+          <Fade in>
+            {/* eslint-disable-next-line jsx-a11y/img-redundant-alt */}
+            <img
+              style={{ height: '322px', width: '225px' }}
+              src={data?.picture}
+              alt="anime image"
+            />
+          </Fade>
+        ) : (
+          <Skeleton variant="rectangular" animation="wave" width={225} height={322} />
+        )}
+      </>
+    ),
+    [data.picture],
+  )
   return (
-    <Box sx={{overflowX: 'hidden'}}>
+    <Box sx={{ overflowX: 'hidden' }}>
       <SearchTorrents open={torrentdialog} onClose={closeTorrentDialog} data={data} />
       <AnimeBox sx={{ flexGrow: 1, overflow: 'hidden' }}>
         <Grid container spacing={2} style={{ zIndex: 1, position: 'relative' }}>
           <Grid item xs={2} style={{ height: '100%' }}>
-            {data.picture ? (
-              <Fade in>
-                {/* eslint-disable-next-line jsx-a11y/img-redundant-alt */}
-                <img
-                  style={{ height: '322px', width: '225px' }}
-                  src={data?.picture}
-                  alt="anime image"
-                />
-              </Fade>
-            ) : (
-              <Skeleton variant="rectangular" animation="wave" width={225} height={322} />
-            )}
+            {Image}
           </Grid>
           <Grid item xs={8}>
             <Grid container spacing={2} alignItems="center">
@@ -199,18 +181,7 @@ const Anime: React.FC<any> = () => {
                 </Item>
               </Grid>
             </Grid>
-            <Grid container spacing={2} mt={2} alignItems="center">
-              <Grid item>
-                <Button color="primary" variant="contained" disabled={!data} onClick={searchTorrents}>
-                  <SearchIcon fontSize="large" sx={{ color: 'white' }} />
-                </Button>
-              </Grid>
-              <Grid item>
-                <Button color="secondary" variant="contained">
-                  <CloudDownloadIcon fontSize="large" sx={{ color: 'white' }} />
-                </Button>
-              </Grid>
-            </Grid>
+            <AnimeManagementButtons data={data} searchTorrents={searchTorrents} />
             <Typography variant="body1" component="div" gutterBottom color="#F4F4F4">
               {data.description}
             </Typography>
@@ -218,27 +189,10 @@ const Anime: React.FC<any> = () => {
         </Grid>
       </AnimeBox>
       <Stack spacing={2}>
-        <Grid container p={4} style={{ height: 400, width: '100%' }}>
-          <Typography variant="h4" component="div" gutterBottom color="#666">
-            Episodes
-          </Typography>
-          <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-            <div style={{ flex: '1 1 auto' }}>
-              {data?.episodes && (
-                <DataGrid
-                  rows={[...new Array(parseInt(data?.episodes, 10))].fill(0).map((_, i) => ({
-                    id: i,
-                    episode: `Episode ${i + 1}`,
-                    status: 'unknown',
-                  }))}
-                  columns={columns}
-                  checkboxSelection
-                  disableSelectionOnClick
-                />
-              )}
-            </div>
-          </div>
-        </Grid>
+        <EpisodeTable
+          title={data.title}
+          episodes={data?.episodes ? parseInt(data?.episodes, 10) : 0}
+        />
       </Stack>
     </Box>
   )

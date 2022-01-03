@@ -127,13 +127,11 @@ interface DashboardLayoutProps extends React.Attributes {
   className?: string
 }
 const drawerWidth = 240
-const DashboardLayout = ({ className, children, Sidebar }: DashboardLayoutProps) => {
+const DashboardLayout = ({ children, Sidebar }: DashboardLayoutProps) => {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [value, setValue] = React.useState<AnimeResult | null>(null)
   const [inputValue, setInputValue] = React.useState('')
   const [options, setOptions] = React.useState<readonly AnimeResult[]>([])
-  const loaded = React.useRef(false)
-  // const loaded = React.useRef(false)
 
   const autocompleteService = api.search
 
@@ -195,6 +193,9 @@ const DashboardLayout = ({ className, children, Sidebar }: DashboardLayoutProps)
         }}
       >
         <Toolbar>
+          <Typography variant="h6" noWrap component="div">
+            TransPlex
+          </Typography>
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -210,6 +211,7 @@ const DashboardLayout = ({ className, children, Sidebar }: DashboardLayoutProps)
             // eslint-disable-next-line
             // @ts-ignore
             getOptionLabel={(option) =>
+              // eslint-disable-next-line no-underscore-dangle
               (typeof option === 'string' ? option : option._source.title)}
             filterOptions={(x) => x}
             options={options}
@@ -218,7 +220,6 @@ const DashboardLayout = ({ className, children, Sidebar }: DashboardLayoutProps)
             filterSelectedOptions
             value={value}
             onChange={(event: any, newValue: AnimeResult | null) => {
-              console.log('got here', newValue)
               setOptions(newValue ? [newValue, ...options] : options)
 
               setValue(newValue)
@@ -227,51 +228,46 @@ const DashboardLayout = ({ className, children, Sidebar }: DashboardLayoutProps)
               setInputValue(newInputValue)
             }}
             // @ts-ignore
-            renderInput={(params) => {
-              console.log(params)
-              return (
-                <Search>
-                  <SearchIconWrapper>
-                    <SearchIcon />
-                  </SearchIconWrapper>
-                  <StyledInputBase
-                    {...params}
-                    InputProps={{
-                      ...params.InputProps,
-                      type: 'search',
-                    }}
-                  />
-                </Search>
-              )
-            }}
+            renderInput={(params) => (
+              <Search>
+                <SearchIconWrapper>
+                  <SearchIcon />
+                </SearchIconWrapper>
+                <StyledInputBase
+                  {...params}
+                  InputProps={{
+                    ...params.InputProps,
+                    type: 'search',
+                  }}
+                />
+              </Search>
+            )}
             renderOption={(props, option) => {
               // eslint-disable-next-line
               // @ts-ignore
-              console.log('got here', option)
               const fulltext = option?.highlight.title[0]
-              console.log('fulltext', fulltext)
               if (!fulltext) {
                 return null
               }
               const matchRes = fulltext ? fulltext.match(/<b>(.+?)<\/b>/) : []
               const matchtext = matchRes ? matchRes[1] : ''
-              console.log('match', matchtext)
 
               // eslint-disable-next-line no-underscore-dangle
               const matches = match(option._source.title, matchtext)
 
-              const parts = {
-                // eslint-disable-next-line no-underscore-dangle
-                text: option._source.title,
-                highlight: option.highlight.title,
-              }
-
               // eslint-disable-next-line no-underscore-dangle
-              const parts2 = parse(option._source.title, matches)
-              console.log(parts2)
+              const parts = parse(option._source.title, matches)
 
               // eslint-disable-next-line jsx-a11y/img-redundant-alt,no-underscore-dangle
-              const thumbnail = () => (<img style={{width: 'auto', height: '100px'}} src={option._source.thumbnail} alt="query image" />)
+              const thumbnail = () => (
+                // eslint-disable-next-line jsx-a11y/img-redundant-alt
+                <img
+                  style={{ width: 'auto', height: '100px' }}
+                  // eslint-disable-next-line no-underscore-dangle
+                  src={option._source.thumbnail}
+                  alt="query image"
+                />
+              )
 
               return (
                 // eslint-disable-next-line no-underscore-dangle
@@ -281,7 +277,7 @@ const DashboardLayout = ({ className, children, Sidebar }: DashboardLayoutProps)
                       <Box component={thumbnail} sx={{ color: 'text.secondary', mr: 2 }} />
                     </Grid>
                     <Grid item xs>
-                      {parts2.map((part) => (
+                      {parts.map((part) => (
                         <span
                           // eslint-disable-next-line react/no-array-index-key, no-underscore-dangle
                           key={nanoid()}
@@ -303,9 +299,6 @@ const DashboardLayout = ({ className, children, Sidebar }: DashboardLayoutProps)
               )
             }}
           />
-          <Typography variant="h6" noWrap component="div">
-            TransPlex
-          </Typography>
         </Toolbar>
       </AppBar>
       <Box

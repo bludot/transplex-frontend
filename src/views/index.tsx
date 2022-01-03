@@ -11,7 +11,6 @@ import {
 } from 'react-router-dom'
 import SearchIcon from '@mui/icons-material/Search'
 import Dashboard from '../layouts/dashboard'
-import Anime from './anime'
 // import ProtectedAuth from './components/protectedRoute'
 
 function ListItemLink({ icon, primary, to }: { icon: any; primary: string; to: string }) {
@@ -49,6 +48,8 @@ const drawer: React.ReactNode = (
 )
 
 export default function App() {
+  const Anime = React.lazy(() => import('./anime'))
+  const Series = React.lazy(() => import('./series'))
   return (
     <Router>
       <Dashboard Sidebar={drawer}>
@@ -58,6 +59,9 @@ export default function App() {
           </Route>
           <Route exact path="/anime/:id">
             <Anime />
+          </Route>
+          <Route path="/series">
+            <Series />
           </Route>
         </Switch>
       </Dashboard>

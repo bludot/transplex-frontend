@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import Button from '@mui/material/Button'
 import { styled } from '@mui/material/styles'
 import Dialog from '@mui/material/Dialog'
@@ -14,11 +14,10 @@ import {
   GridRenderCellParams,
   GridRowParams,
 } from '@mui/x-data-grid'
-import QueryString from 'query-string'
-import axios from 'axios'
 import Grid from '@mui/material/Grid'
 import Popover from '@mui/material/Popover'
 import CloudDownload from '@mui/icons-material/CloudDownload'
+import { addDownload, isFullSeason, searchDownloads } from '../service'
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
@@ -68,16 +67,19 @@ export default function CustomizedDialogs({
   open: boolean
   onClose: () => void
 }) {
-  const [torrents, setTorrents] = React.useState<any[]>([])
-  const [loadingData, setLoadingData] = React.useState<boolean>(true)
+  const [torrents, setTorrents] = useState<any[]>([])
+  const [loadingData, setLoadingData] = useState<boolean>(true)
   const handleClose = () => {
     onClose()
   }
   const download = React.useCallback(
     (params: GridRowParams) => () => {
-      console.log(params)
+      const item = isFullSeason(params.row.torrentdata.files.length, data.episodes) ? 0 : 1
+      addDownload(data.title, params.row.magnet, item, params.row.hash).then(() => {
+        onClose()
+      })
     },
-    [],
+    [data],
   )
 
   const columns: GridColDef[] = React.useMemo(
@@ -166,12 +168,11 @@ export default function CustomizedDialogs({
         category: '1_0',
         query: data.title,
       }
-      axios
-        .get(`http://localhost:1337/nyaapi/search?${QueryString.stringify(query)}`)
-        .then((result) => {
-          setTorrents(result.data)
-          setLoadingData(false)
-        })
+      searchDownloads(query).then((result) => {
+        console.log('dunno')
+        setTorrents(result)
+        setLoadingData(false)
+      })
     }
   }, [data, open])
 

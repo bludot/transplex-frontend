@@ -1,14 +1,18 @@
 import React, { useState, Suspense, useEffect } from 'react'
 import configApi from './services/api/config'
+import socketHandler from './services/socket'
 
 const Bootstrap = () => {
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     configApi.fetch().then((conf) => {
-    // @ts-ignore
+      // @ts-ignore
       global.config = conf
-      setLoaded(true)
+      socketHandler.connect()
+      socketHandler.getSocket().on('connection', (data: any) => {
+        setLoaded(true)
+      })
     })
   }, [])
   if (loaded) {

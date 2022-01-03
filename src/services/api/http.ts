@@ -3,8 +3,14 @@ import config from '../../config'
 
 const instance = axios.create({
   baseURL: config.api_host,
-  timeout: 1000,
+  timeout: 10000,
   withCredentials: true,
 })
 
-export default instance
+const longInstance = axios.create({
+  baseURL: config.api_host,
+  timeout: 0,
+  withCredentials: true,
+})
+
+export { instance as default, longInstance }
