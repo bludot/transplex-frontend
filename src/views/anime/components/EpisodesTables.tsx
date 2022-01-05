@@ -18,6 +18,7 @@ function listenToProgres(func: any) {
 
 function removeListener() {
   socketHanlder.getSocket().removeAllListeners('series_download_progress')
+  listening = false
 }
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
@@ -148,11 +149,11 @@ const EpisodeTable = ({ title, episodes }: { title: string; episodes: number }) 
   }, [title])
 
   return (
-    <Grid container p={4} style={{ height: 400, width: '100%' }}>
+    <Grid container p={4} style={{ width: '100%' }}>
       <Typography variant="h4" component="div" gutterBottom color="#666">
         Episodes
       </Typography>
-      <div style={{ display: 'flex', height: '100%', width: '100%' }}>
+      <div style={{ display: 'flex', flexFlow: 'column nowrap', minHeight: '400px', width: '100%' }}>
         <div style={{ flex: '1 1 auto' }}>
           {episodes && (
             <DataGrid
