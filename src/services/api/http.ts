@@ -3,7 +3,7 @@ import config from '../../config'
 
 const instance = axios.create({
   baseURL: config.api_host,
-  timeout: 10000,
+  timeout: 100000,
   withCredentials: true,
 })
 

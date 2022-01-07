@@ -11,4 +11,5 @@ export interface IMetadata {
   readonly type: string
   readonly tags: string[]
   readonly seasons: number
+  readonly theTvDb: any
 }

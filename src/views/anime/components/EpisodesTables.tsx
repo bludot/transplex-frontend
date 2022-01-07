@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
 import { getMediaByName } from '../service'
 import socketHanlder from '../../../services/socket'
+import { mapFilesToEpisodes } from '../../../services/utils'
 
 let listening = false
 function listenToProgres(func: any) {
@@ -38,26 +39,19 @@ const columns: GridColDef[] = [
   { field: 'id', headerName: 'ID', width: 90 },
   {
     field: 'episode',
-    headerName: 'Episode',
-    width: 150,
+    headerName: '#',
+    width: 50,
     editable: false,
+  },
+  {
+    field: 'name',
+    headerName: 'Name',
+    width: 800,
   },
   {
     field: 'airDate',
     headerName: 'Air Date',
     width: 100,
-    renderCell: (params: GridRenderCellParams<String>) => {
-      switch (params.value) {
-      case 'FINISHED':
-        return <Chip label="Finished" color="primary" />
-      case 'RELEASING':
-        return <Chip label="Releasing" color="secondary" />
-      case 'NOT_YET_RELEASED':
-        return <Chip label="Not Yet Released" color="default" />
-      default:
-        return <Chip label="Unknown" color="warning" />
-      }
-    },
   },
   {
     field: 'status',
@@ -86,97 +80,121 @@ const columns: GridColDef[] = [
   },
 ]
 
-const EpisodeTable = ({ title, episodes }: { title: string; episodes: number }) => {
+const EpisodeTable = ({ season, episodes }: { season: string; episodes: any[] }) => (
+  <Grid container p={4} style={{ width: '100%' }}>
+    <Typography variant="h4" component="div" gutterBottom color="#666">
+      {season === '0' ? 'Special' : `Season ${season}`}
+    </Typography>
+    <div
+      style={{
+        display: 'flex',
+        flexFlow: 'column nowrap',
+        minHeight: '400px',
+        width: '100%',
+      }}
+    >
+      <div style={{ flex: '1 1 auto' }}>
+        {episodes && episodes.map && (
+          <DataGrid
+            rows={episodes.map((episode, i) => ({
+              id: i,
+              episode: episode.episode || '#',
+              airDate: episode.aired,
+              name: episode.name,
+              status: episode.status,
+              progress: episode.progress,
+            }))}
+            columns={columns}
+            checkboxSelection
+            disableSelectionOnClick
+          />
+        )}
+      </div>
+    </div>
+  </Grid>
+)
+
+const EpisodeTables = ({ seasons, metadata }: { seasons: any; metadata: any }) => {
+  const seasonMap = Object.keys(seasons).reduce((acc: any, key: any) => {
+    acc[seasons[key]] = seasons[key].map((e: any) => e.episode)
+    return acc
+  }, {})
   const [mediaId, setMediaId] = useState('')
-  const [mediaData, setMediaData] = useState<any>({
-    status: {
-      filesSorted: {} as any,
-    },
-  })
+  const [mediaData, setMediaData] = useState<any>({})
+  const [mappedEpisodes, setMappedEpisodes] = useState<any[]>([])
   function updateMedia(title: string) {
     getMediaByName(title).then((resMedia: any) => {
       if (resMedia.data) {
-        listenToProgres((data: any) => {
-          progress(data, resMedia.data.id, setMediaData)
-        })
-        resMedia.data.status.filesSorted = resMedia.data.status.files.reduce(
-          (acc: any, file: any) => ({
-            ...acc,
-            [file.data.episodeNumbers]: {
-              ...file,
-              status: file.bytesCompleted === file.length ? 'FINISHED' : 'DOWNLOADING',
-            },
-          }),
-          {} as any,
-        )
         setMediaId(resMedia.data.id)
         setMediaData(resMedia.data)
+        const metaEpisodes = metadata.theTvDb.data.episodes.map((episode: any) => ({
+          ...episode,
+          episode: episode.number,
+        }))
+        const files = resMedia.data.status.files.map((file: any) => ({
+          ...file,
+          ...file.data,
+        }))
+        const mappedData = mapFilesToEpisodes(files, metaEpisodes).map((episode) => {
+          const progress = Math.floor((episode.bytesCompleted / episode.length) * 100)
+          return {
+            ...episode,
+            status: progress / 100 === 1 ? 'FINISHED' : resMedia.data.status.status,
+            progress: Math.floor((episode.bytesCompleted / episode.length) * 100),
+          }
+        })
+        setMappedEpisodes(mappedData)
+
+        listenToProgres((data: any) => {
+          progress(data, resMedia.data.id, resMedia.data)
+        })
       }
     })
   }
-  const progress = (data: any, currentMediaId: string, setMedia: any) => {
+  const progress = (data: any, currentMediaId: string, media: any) => {
     console.log(data.mediaId, currentMediaId)
     console.log(data.mediaId === currentMediaId)
     if (data.mediaId === currentMediaId) {
-      const sortedFiles = data.files.reduce(
-        (acc: any, file: any) => ({
-          ...acc,
-          [file.data.episodeNumbers]: {
-            ...file,
-            status: file.bytesCompleted === file.length ? 'FINISHED' : 'DOWNLOADING',
-          },
-        }),
-        mediaData.status.filesSorted as any,
-      )
-
-      setMedia({
-        ...mediaData,
-        status: {
-          ...mediaData.status,
-          filesSorted: sortedFiles,
-        },
+      const metaEpisodes = metadata.theTvDb.data.episodes.map((episode: any) => ({
+        ...episode,
+        episode: episode.number,
+      }))
+      const files = data.files.map((file: any) => ({
+        ...file,
+        ...file.data,
+      }))
+      const mappedData = mapFilesToEpisodes(files, metaEpisodes).map((episode) => {
+        const progress = Math.floor((episode.bytesCompleted / episode.length) * 100)
+        return {
+          ...episode,
+          status: progress / 100 === 1 ? 'FINISHED' : media.status.status,
+          progress: Math.floor((episode.bytesCompleted / episode.length) * 100),
+        }
       })
+      setMappedEpisodes(mappedData)
     }
   }
 
   useEffect(() => {
-    if (title) {
-      updateMedia(title as string)
+    if (metadata.title) {
+      updateMedia(metadata.title as string)
     }
     return () => {
       removeListener()
     }
-  }, [title])
-
+  }, [metadata])
   return (
-    <Grid container p={4} style={{ width: '100%' }}>
-      <Typography variant="h4" component="div" gutterBottom color="#666">
-        Episodes
-      </Typography>
-      <div style={{ display: 'flex', flexFlow: 'column nowrap', minHeight: '400px', width: '100%' }}>
-        <div style={{ flex: '1 1 auto' }}>
-          {episodes && (
-            <DataGrid
-              rows={[...new Array(episodes)].fill(0).map((_, i) => ({
-                id: i,
-                episode: `Episode ${i + 1}`,
-                airDate: 'unknown',
-                status: mediaData?.status?.filesSorted[i + 1]?.status,
-                progress: Math.floor(
-                  (mediaData?.status?.filesSorted[i + 1]?.bytesCompleted
-                    / mediaData?.status?.filesSorted[i + 1]?.length)
-                    * 100,
-                ),
-              }))}
-              columns={columns}
-              checkboxSelection
-              disableSelectionOnClick
-            />
-          )}
-        </div>
-      </div>
-    </Grid>
+    <>
+      {seasons
+        && Object.keys(seasons).map((season: any) => (
+          <EpisodeTable
+            season={season.toString()}
+            episodes={mappedEpisodes.filter(
+              (episode) => episode.seasonNumber.toString() === season.toString(),
+            )}
+          />
+        ))}
+    </>
   )
 }
-
-export default EpisodeTable
+export default EpisodeTables

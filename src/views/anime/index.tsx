@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import { styled } from '@mui/material/styles'
@@ -15,7 +16,8 @@ import SearchTorrents from './components/SearchTorrents'
 import AnimeManagementButtons from './components/AnimeManagementButtons'
 import { getMetadataByanidbId } from './service'
 import { IMetadata } from '../../services/api/metadata.interface'
-import EpisodeTable from './components/EpisodesTables'
+import EpisodeTables from './components/EpisodesTables'
+import MovieTable from './components/MovieTable'
 
 const Item = styled(Paper)(({ theme }) => ({
   ...theme.typography.body2,
@@ -40,10 +42,10 @@ const Anime: React.FC<any> = () => {
       left: 0,
       bottom: 0,
       right: 0,
-      backgroundImage: `url(${data?.picture})`,
+      backgroundImage: `url(http://localhost:1337/metadata/anime/${data?.anidbid}/fanart)`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      filter: 'blur(8px)',
+      // filter: 'blur(8px)',
       width: '120%',
     },
 
@@ -61,11 +63,39 @@ const Anime: React.FC<any> = () => {
   const params: { id: string } = useParams() as { id: string }
   const [data, setData] = useState<IMetadata | any>({})
   const [torrentdialog, setTorrentdialog] = useState<boolean>(false)
+  const [seasons, setSeasons] = useState<any[]>([])
 
   useEffect(() => {
     setData({})
     getMetadataByanidbId(params.id.toString()).then((res: IMetadata) => {
       setData(res)
+      setSeasons(
+        res.theTvDb.data.episodes.reduce(
+          (acc: any, episode: any) => ({
+            ...acc,
+            seasons: {
+              ...acc.seasons,
+
+              [episode.seasonNumber]: acc.seasons[episode.seasonNumber]
+                ? acc.seasons[episode.seasonNumber].concat({
+                  episode: episode.number,
+                  name: episode.name,
+                  airDate: episode.aired,
+                  seasonNumber: episode.seasonNumber,
+                })
+                : [
+                  {
+                    episode: episode.number,
+                    name: episode.name,
+                    airDate: episode.aired,
+                    seasonNumber: episode.seasonNumber,
+                  },
+                ],
+            },
+          }),
+          { seasons: {} },
+        ).seasons,
+      )
     })
   }, [params.id])
 
@@ -76,25 +106,22 @@ const Anime: React.FC<any> = () => {
   const closeTorrentDialog = () => {
     setTorrentdialog(false)
   }
-  const Image = useMemo(
-    () => (
+  const Image = useMemo(() => {
+    // eslint-disable-next-line no-underscore-dangle
+    const imageUrl = `http://localhost:1337/metadata/anime/${data.anidbid}/poster`
+    return (
       <>
-        {data.picture ? (
+        {data?.theTvDb ? (
           <Fade in>
             {/* eslint-disable-next-line jsx-a11y/img-redundant-alt */}
-            <img
-              style={{ height: '322px', width: '225px' }}
-              src={data?.picture}
-              alt="anime image"
-            />
+            <img style={{ height: '322px', width: '225px' }} src={imageUrl} alt="anime image" />
           </Fade>
         ) : (
           <Skeleton variant="rectangular" animation="wave" width={225} height={322} />
         )}
       </>
-    ),
-    [data.picture],
-  )
+    )
+  }, [data.picture])
   return (
     <Box sx={{ overflowX: 'hidden' }}>
       <SearchTorrents open={torrentdialog} onClose={closeTorrentDialog} data={data} />
@@ -188,12 +215,14 @@ const Anime: React.FC<any> = () => {
           </Grid>
         </Grid>
       </AnimeBox>
-      <Stack spacing={2}>
-        <EpisodeTable
-          title={data.title}
-          episodes={data?.episodes ? parseInt(data?.episodes, 10) : 0}
-        />
-      </Stack>
+      {data?.type !== 'MOVIE' && (
+        <Stack spacing={2}>{seasons && <EpisodeTables seasons={seasons} metadata={data} />}</Stack>
+      )}
+      {data?.type === 'MOVIE' && (
+        <Stack spacing={2}>
+          <MovieTable title={data.title} data={data.theTvDb.data} />
+        </Stack>
+      )}
     </Box>
   )
 }
