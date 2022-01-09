@@ -73,6 +73,27 @@ export function getEpisodeFromEpisodeNumber(episodeNumber: any, episodes: any) {
   return episode
 }
 
+export function sortFiles(files: any) {
+  return files.sort((a: any, b: any) => {
+    if (a.season === b.season) {
+      return a.episode - b.episode
+    }
+    return a.season - b.season
+  })
+}
+
+function getFileFromEpisode(episode: any, episodes: any[], files: any[]) {
+  const episodeIndex = episodes
+    .filter((filterEpisode) => filterEpisode.seasonNumber !== 0)
+    .findIndex(
+      (searchEpisode: any) =>
+        searchEpisode.episode === episode.episode
+        && searchEpisode.seasonNumber === episode.seasonNumber,
+    )
+  const sortedFiles = sortFiles(files)
+  return sortedFiles[episodeIndex]
+}
+
 export function getEpisodeByOtherMeans(file: any, episodes: any) {
   const episode = episodes.find((episode: any) => {
     if (file.year) {
@@ -83,27 +104,66 @@ export function getEpisodeByOtherMeans(file: any, episodes: any) {
   return episode || false
 }
 
+export function getFileByOtherMeans(episode: any, files: any) {
+  const fileIndex = files.findIndex((searchFile: any) => {
+    if (searchFile.year) {
+      return searchFile.year.toString() === episode.aired.toString().slice(0, 4)
+    }
+    return false
+  })
+  return files[fileIndex]
+}
+
 export function mapFilesToEpisodes(files: any[], episodes: any[]) {
+  const seasons = episodesToSeasons(episodes)
   const sortedEpisodes = sortEpisodes(episodes)
-  return files
-    .map((file) => {
-      const episode = getEpisodeFromEpisodeNumber(file.episode, sortedEpisodes)
-      if (!episode) {
-        const alternativeEpisode = getEpisodeByOtherMeans(file, sortedEpisodes)
-        if (alternativeEpisode) {
+  // season count
+  // const seasonsCount = Object.keys(seasons).length
+  const seasonsCountNoSpecial = Object.keys(seasons).filter(
+    (season) => season.toString() !== '0',
+  ).length
+  const episodetofile = sortEpisodes(
+    episodes
+      .map((episode: any) => {
+        const file = files.find(
+          (searchFile: any) =>
+            searchFile.episode === episode.number && episode.seasonNumber === searchFile.season,
+        )
+        if (file) {
           return {
+            fileName: file.mame,
             ...file,
-            ...alternativeEpisode,
-            seasonNumber: 0,
-            season: 0,
+            ...episode,
           }
         }
-        return null
-      }
-      return {
-        ...file,
-        ...episode,
-      }
-    })
-    .filter((episode: any) => episode)
+
+        if (episode.episode && seasonsCountNoSpecial.toString() === '1') {
+          return {
+            ...files.find((searchFile: any) => episode.number === searchFile.episode),
+            ...episode,
+          }
+        }
+        const file2 = getFileFromEpisode(episode, sortedEpisodes, files)
+        if (!file2) {
+          const alternativeFile = getFileByOtherMeans(episode, sortedEpisodes)
+          if (alternativeFile) {
+            return {
+              fileName: alternativeFile?.name,
+              ...alternativeFile,
+              ...episode,
+              seasonNumber: 0,
+              season: 0,
+            }
+          }
+          return episode
+        }
+        return {
+          ...file2,
+          fileName: file2.name,
+          ...episode,
+        }
+      })
+      .filter((episode: any) => episode),
+  )
+  return episodetofile
 }

@@ -9,6 +9,21 @@ import { getMediaByName } from '../service'
 import socketHanlder from '../../../services/socket'
 import { mapFilesToEpisodes } from '../../../services/utils'
 
+let cachedData: any = {}
+async function checkData(data: any, title: string) {
+  if (!data.status?.files || !data.status?.files.length) {
+    if (cachedData.status?.files && cachedData.status?.files.length) {
+      return cachedData
+    }
+    console.log('getting new data')
+    const newData = await getMediaByName(title)
+
+    cachedData = newData
+    return newData
+  }
+  return cachedData
+}
+
 let listening = false
 function listenToProgres(func: any) {
   if (!listening) {
@@ -36,7 +51,6 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
 }))
 
 const columns: GridColDef[] = [
-  { field: 'id', headerName: 'ID', width: 90 },
   {
     field: 'episode',
     headerName: '#',
@@ -46,7 +60,7 @@ const columns: GridColDef[] = [
   {
     field: 'name',
     headerName: 'Name',
-    width: 800,
+    width: 400,
   },
   {
     field: 'airDate',
@@ -123,38 +137,52 @@ const EpisodeTables = ({ seasons, metadata }: { seasons: any; metadata: any }) =
   const [mediaData, setMediaData] = useState<any>({})
   const [mappedEpisodes, setMappedEpisodes] = useState<any[]>([])
   function updateMedia(title: string) {
-    getMediaByName(title).then((resMedia: any) => {
-      if (resMedia.data) {
-        setMediaId(resMedia.data.id)
-        setMediaData(resMedia.data)
+    getMediaByName(title).then(async (resMedia: any) => {
+      if (resMedia) {
+        setMediaId(resMedia.id)
+        setMediaData(resMedia)
         const metaEpisodes = metadata.theTvDb.data.episodes.map((episode: any) => ({
           ...episode,
           episode: episode.number,
         }))
-        const files = resMedia.data.status.files.map((file: any) => ({
-          ...file,
-          ...file.data,
-        }))
-        const mappedData = mapFilesToEpisodes(files, metaEpisodes).map((episode) => {
-          const progress = Math.floor((episode.bytesCompleted / episode.length) * 100)
-          return {
+        const files = resMedia?.status?.files
+          ? resMedia?.status?.files?.map((file: any) => ({
+            ...file,
+            ...file.data,
+          }))
+          : null
+        if (files && files.length) {
+          const mappedData = mapFilesToEpisodes(files, metaEpisodes).map((episode: any) => {
+            const progress = Math.floor((episode.bytesCompleted / episode.length) * 100)
+            return {
+              ...episode,
+              status: progress / 100 === 1 ? 'FINISHED' : resMedia.status.status,
+              progress: Math.floor((episode.bytesCompleted / episode.length) * 100),
+            }
+          })
+          setMappedEpisodes(mappedData)
+        } else {
+          const mappedData = metaEpisodes.map((episode: any) => ({
             ...episode,
-            status: progress / 100 === 1 ? 'FINISHED' : resMedia.data.status.status,
-            progress: Math.floor((episode.bytesCompleted / episode.length) * 100),
-          }
-        })
-        setMappedEpisodes(mappedData)
+            status: resMedia.status.status,
+            progress: 0,
+          }))
+          setMappedEpisodes(mappedData)
+        }
 
         listenToProgres((data: any) => {
-          progress(data, resMedia.data.id, resMedia.data)
+          progress(data, resMedia.id, setMappedEpisodes)
         })
       }
     })
   }
-  const progress = (data: any, currentMediaId: string, media: any) => {
-    console.log(data.mediaId, currentMediaId)
-    console.log(data.mediaId === currentMediaId)
+  const progress = async (
+    data: any,
+    currentMediaId: string,
+    setMap: any,
+  ) => {
     if (data.mediaId === currentMediaId) {
+      console.log('data', data)
       const metaEpisodes = metadata.theTvDb.data.episodes.map((episode: any) => ({
         ...episode,
         episode: episode.number,
@@ -163,15 +191,17 @@ const EpisodeTables = ({ seasons, metadata }: { seasons: any; metadata: any }) =
         ...file,
         ...file.data,
       }))
-      const mappedData = mapFilesToEpisodes(files, metaEpisodes).map((episode) => {
+      console.log('episodes', metaEpisodes)
+      console.log('files', files)
+      const mappedData = mapFilesToEpisodes(files, metaEpisodes).map((episode: any) => {
         const progress = Math.floor((episode.bytesCompleted / episode.length) * 100)
         return {
           ...episode,
-          status: progress / 100 === 1 ? 'FINISHED' : media.status.status,
+          status: progress / 100 === 1 ? 'FINISHED' : data.status,
           progress: Math.floor((episode.bytesCompleted / episode.length) * 100),
         }
       })
-      setMappedEpisodes(mappedData)
+      setMap(mappedData)
     }
   }
 
@@ -183,6 +213,7 @@ const EpisodeTables = ({ seasons, metadata }: { seasons: any; metadata: any }) =
       removeListener()
     }
   }, [metadata])
+
   return (
     <>
       {seasons
@@ -190,7 +221,9 @@ const EpisodeTables = ({ seasons, metadata }: { seasons: any; metadata: any }) =
           <EpisodeTable
             season={season.toString()}
             episodes={mappedEpisodes.filter(
-              (episode) => episode.seasonNumber.toString() === season.toString(),
+              (episode) =>
+                (episode.seasonNumber ? episode.seasonNumber.toString() : '0')
+                === season.toString(),
             )}
           />
         ))}

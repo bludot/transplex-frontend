@@ -75,7 +75,7 @@ export default function CustomizedDialogs({
   const download = React.useCallback(
     (params: GridRowParams) => () => {
       const item = isFullSeason(params.row.torrentdata.files.length, data.episodes) ? 0 : 1
-      addDownload(data.title, params.row.magnet, item, params.row.hash).then(() => {
+      addDownload(data.title, params.row.magnet, params.row.torrent, item, params.row.hash).then(() => {
         onClose()
       })
     },

@@ -64,9 +64,7 @@ const Anime: React.FC<any> = () => {
   const [data, setData] = useState<IMetadata | any>({})
   const [torrentdialog, setTorrentdialog] = useState<boolean>(false)
   const [seasons, setSeasons] = useState<any[]>([])
-
-  useEffect(() => {
-    setData({})
+  function getMetadata() {
     getMetadataByanidbId(params.id.toString()).then((res: IMetadata) => {
       setData(res)
       setSeasons(
@@ -96,7 +94,12 @@ const Anime: React.FC<any> = () => {
           { seasons: {} },
         ).seasons,
       )
+      return res
     })
+  }
+  useEffect(() => {
+    setData({})
+    getMetadata()
   }, [params.id])
 
   const searchTorrents = () => {

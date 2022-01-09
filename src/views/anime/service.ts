@@ -22,8 +22,14 @@ export function getMetadataByanidbId(id: string) {
   return api.metadata.getMetadataByanidbId(id)
 }
 
-export function addDownload(mediaName: string, magnetLink: string, item: number, hash: string) {
-  return api.download.download(mediaName, magnetLink, item, hash)
+export function addDownload(
+  mediaName: string,
+  magnetLink: string,
+  url: string,
+  item: number,
+  hash: string,
+) {
+  return api.download.download(mediaName, magnetLink, url, item, hash)
 }
 
 export function isFullSeason(filesLength: number, episodes: number): boolean {
