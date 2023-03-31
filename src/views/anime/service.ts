@@ -18,8 +18,8 @@ export function searchDownloads(query: ISearchQuery) {
   return api.download.search(query)
 }
 
-export function getMetadataByanidbId(id: string) {
-  return api.metadata.getMetadataByanidbId(id)
+export function getMetadataByanidbId(type: string, id: string) {
+  return api.metadata.getMetadataByanidbId(type, id)
 }
 
 export function addDownload(

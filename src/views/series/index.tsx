@@ -53,8 +53,8 @@ export default function Series() {
       <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
         {series.map((item, index) => (
           <Grid item xs={2} sm={4} md={4} key={index}>
-            <ItemLink to={`/anime/${item.anidbId.toString()}`}>
-              <Image id={item.anidbId.toString()} />
+            <ItemLink to={`/anime/${item.thetvdbid.toString()}`}>
+              <Image type={item.type.toString()} id={item.thetvdbid.toString()} />
               <Typography variant="h5">{item.name}</Typography>
             </ItemLink>
           </Grid>

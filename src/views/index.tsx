@@ -57,7 +57,7 @@ export default function App() {
           <Route exact path="/">
             <h1>Welcome</h1>
           </Route>
-          <Route exact path="/anime/:id">
+          <Route exact path="/anime/:type/:id">
             <Anime />
           </Route>
           <Route path="/series">
