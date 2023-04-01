@@ -5,6 +5,6 @@ export function getAllMedia() {
   return api.media.getAllMedia()
 }
 
-export function getMetadata(id: string): Promise<IMetadata> {
-  return api.metadata.getMetadataByanidbId(id)
+export function getMetadata(type: string, id: string): Promise<IMetadata> {
+  return api.metadata.getMetadataByanidbId(type, id)
 }

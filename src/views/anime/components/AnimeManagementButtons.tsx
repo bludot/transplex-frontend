@@ -17,7 +17,7 @@ export default function AnimeManagementButtons({
   const [isAdded, setIsAdded] = useState(false)
   useEffect(() => {
     if (data) {
-      getMediaByName(data.title).then((res: any) => {
+      getMediaByName(data.name).then((res: any) => {
         if (res.data) {
           setIsAdded(true)
         }
@@ -32,14 +32,14 @@ export default function AnimeManagementButtons({
           variant="contained"
           onClick={
             isAdded
-              ? () => removeSeries(data.title).then(() => setIsAdded(false))
+              ? () => removeSeries(data.name).then(() => setIsAdded(false))
               : () => {
                 addSeries({
-                  name: data.title,
+                  name: data.name,
                   type: data.type,
                   anime: true,
                   watch: false,
-                  anidbId: data.anidbid,
+                  thetvdbid: data.id.toString(),
                 }).then(() => setIsAdded(true))
               }
           }

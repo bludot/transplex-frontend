@@ -42,7 +42,7 @@ const Anime: React.FC<any> = () => {
       left: 0,
       bottom: 0,
       right: 0,
-      backgroundImage: `url(http://localhost:1337/metadata/anime/${data?.anidbid}/fanart)`,
+      backgroundImage: `url(http://localhost:1337/metadata/anime/${data?.type}/${data?.id}/fanart)`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       // filter: 'blur(8px)',
@@ -60,15 +60,15 @@ const Anime: React.FC<any> = () => {
     },
   }))
 
-  const params: { id: string } = useParams() as { id: string }
+  const params: { id: string, type: string } = useParams() as { id: string, type: string }
   const [data, setData] = useState<IMetadata | any>({})
   const [torrentdialog, setTorrentdialog] = useState<boolean>(false)
   const [seasons, setSeasons] = useState<any[]>([])
   function getMetadata() {
-    getMetadataByanidbId(params.id.toString()).then((res: IMetadata) => {
+    getMetadataByanidbId(params.type.toString(), params.id.toString()).then((res: IMetadata) => {
       setData(res)
       setSeasons(
-        res.theTvDb.data.episodes.reduce(
+        res.episodes.reduce(
           (acc: any, episode: any) => ({
             ...acc,
             seasons: {
@@ -137,8 +137,8 @@ const Anime: React.FC<any> = () => {
             <Grid container spacing={2} alignItems="center">
               <Grid item>
                 <Typography variant="h2" component="div" gutterBottom color="#F4F4F4">
-                  {data.title ? (
-                    <>{data.title}</>
+                  {data.name ? (
+                    <>{data.name}</>
                   ) : (
                     <Skeleton variant="text" animation="wave" width={400} height={93} />
                   )}
@@ -170,7 +170,7 @@ const Anime: React.FC<any> = () => {
                         <VideoLibraryIcon style={{ color: 'text.secondary' }} />
                       </Grid>
                       <Grid item>
-                        <span>{data.seasons}</span>
+                        <span>{Math.max(data.episodes.map((ep: any) => parseInt(ep.seasonNumber, 10)))}</span>
                       </Grid>
                     </Grid>
                   ) : (
@@ -186,7 +186,7 @@ const Anime: React.FC<any> = () => {
                         <EventIcon style={{ color: 'text.secondary' }} />
                       </Grid>
                       <Grid item>
-                        <span>{data.year}</span>
+                        <span>{data.firstAired.split('-')[0]}</span>
                       </Grid>
                     </Grid>
                   ) : (
@@ -202,7 +202,7 @@ const Anime: React.FC<any> = () => {
                         <VideoLibraryIcon style={{ color: 'text.secondary' }} />
                       </Grid>
                       <Grid item>
-                        <span>{data.episodes}</span>
+                        <span>{data.episodes.length}</span>
                       </Grid>
                     </Grid>
                   ) : (
@@ -223,7 +223,7 @@ const Anime: React.FC<any> = () => {
       )}
       {data?.type === 'MOVIE' && (
         <Stack spacing={2}>
-          <MovieTable title={data.title} data={data.theTvDb.data} />
+          <MovieTable title={data.name} data={data.theTvDb.data} />
         </Stack>
       )}
     </Box>

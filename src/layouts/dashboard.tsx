@@ -46,37 +46,15 @@ function ListItemLink({
   )
 }
 
-interface AnimeResultSource {
-  title: string
-  description: string
-  synonyms: string[]
-  type: string
-  episodes: number
-  tags: string[]
-  anidbid: string
-  picture: string
-  thumbnail: string
-  relations: string[]
-}
-
 interface AnimeResult {
-  // eslint-disable-next-line
-  _id: string
-  // eslint-disable-next-line
-  _score: number
-  // eslint-disable-next-line
-  _source: AnimeResultSource
-  // eslint-disable-next-line
-  highlight: {
-    title: string
-  }
-}
-
-interface AnimeResults {
-  hits: {
-    total: number
-    hits: AnimeResult[]
-  }
+  name: string
+  translations: Record<string, string>
+  overviews: Record<string, string>
+  type: string
+  image_url: string
+  thumbnail: string
+  id: string
+  anidbid: string
 }
 
 const Search = styled('div')(({ theme }) => ({
@@ -139,8 +117,8 @@ const DashboardLayout = ({ children, Sidebar }: DashboardLayoutProps) => {
     () =>
       throttle(
         (request: { input: string }, callback: (results?: readonly AnimeResult[]) => void) => {
-          autocompleteService.search(request.input).then((results: AnimeResults) => {
-            callback(results.hits.hits.slice(0, 20))
+          autocompleteService.search(request.input).then((results: any[]) => {
+            callback(results.slice(0, 20))
           })
         },
         500,
@@ -212,7 +190,7 @@ const DashboardLayout = ({ children, Sidebar }: DashboardLayoutProps) => {
             // @ts-ignore
             getOptionLabel={(option) =>
               // eslint-disable-next-line no-underscore-dangle
-              (typeof option === 'string' ? option : option._source.title)}
+              (typeof option === 'string' ? option : option.name)}
             filterOptions={(x) => x}
             options={options}
             autoComplete
@@ -245,7 +223,7 @@ const DashboardLayout = ({ children, Sidebar }: DashboardLayoutProps) => {
             renderOption={(props, option) => {
               // eslint-disable-next-line
               // @ts-ignore
-              const fulltext = option?.highlight.title[0]
+              const fulltext = inputValue
               if (!fulltext) {
                 return null
               }
@@ -253,10 +231,10 @@ const DashboardLayout = ({ children, Sidebar }: DashboardLayoutProps) => {
               const matchtext = matchRes ? matchRes[1] : ''
 
               // eslint-disable-next-line no-underscore-dangle
-              const matches = match(option._source.title, matchtext)
+              const matches = match(option.name, matchtext)
 
               // eslint-disable-next-line no-underscore-dangle
-              const parts = parse(option._source.title, matches)
+              const parts = parse(option.name, matches)
 
               // eslint-disable-next-line jsx-a11y/img-redundant-alt,no-underscore-dangle
               const thumbnail = () => (
@@ -264,14 +242,14 @@ const DashboardLayout = ({ children, Sidebar }: DashboardLayoutProps) => {
                 <img
                   style={{ width: 'auto', height: '100px' }}
                   // eslint-disable-next-line no-underscore-dangle
-                  src={option._source.thumbnail}
+                  src={`http://localhost:1337/metadata/anime/${option.id.split('-')[0].toLowerCase()}/${option.id.replace(/[^0-9.]/gm, '')}/poster`}
                   alt="query image"
                 />
               )
 
               return (
                 // eslint-disable-next-line no-underscore-dangle
-                <ListItemLink to={`/anime/${option._source.anidbid}`} {...props} key={nanoid()}>
+                <ListItemLink to={`/anime/${option.id.split('-')[0].toLowerCase()}/${option.id.replace(/[^0-9.]/gm, '')}`} {...props} key={nanoid()}>
                   <Grid container alignItems="center">
                     <Grid xs item>
                       <Box component={thumbnail} sx={{ color: 'text.secondary', mr: 2 }} />

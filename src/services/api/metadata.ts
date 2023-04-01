@@ -2,11 +2,12 @@ import instance from './http'
 import { IMetadata } from './metadata.interface'
 
 export default {
-  async getMetadataByanidbId(id: string): Promise<IMetadata> {
-    const { data }: {data: IMetadata & {readonly tags: string} } = await instance.get(`/metadata/anime/${id}`)
+  async getMetadataByanidbId(type: string, id: string): Promise<IMetadata> {
+    const { data }: {data: IMetadata & {readonly tags: string} } = await instance.get(`/metadata/anime/${type}/${id}`)
     return {
       ...data,
-      tags: data.tags.split(','),
+      tags: [],
+      // tags: data.tags.split(','),
     }
   },
 }

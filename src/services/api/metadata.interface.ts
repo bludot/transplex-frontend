@@ -1,6 +1,6 @@
 export interface IMetadata {
-  readonly episodes: number
-  readonly year: string
+  readonly episodes: any[]
+  readonly firstAired: string
   readonly picture: string
   readonly thumbnail: string
   readonly synonyms: string[]
@@ -12,4 +12,5 @@ export interface IMetadata {
   readonly tags: string[]
   readonly seasons: number
   readonly theTvDb: any
+  readonly id: string
 }
