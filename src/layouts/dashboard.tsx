@@ -11,6 +11,8 @@ function Dashboard({children, Sidebar}: {children: any, Sidebar?: any}) {
   return (
     <>
       <Header>
+        <div className={"flex flex-row items-center space-x-2"}>
+        <span>Search</span>
         <Search<SearchItem>
           searchFunction={api.search.search}
           className="relative w-72 z-10"
@@ -32,6 +34,7 @@ function Dashboard({children, Sidebar}: {children: any, Sidebar?: any}) {
               </div>
             )
           }/>
+        </div>
       </Header>
       <div className="w-full">
         {Sidebar && <Sidebar/>}
