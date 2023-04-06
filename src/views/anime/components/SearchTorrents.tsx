@@ -1,206 +1,157 @@
-import React, { useEffect, useState } from 'react'
-import Button from '@mui/material/Button'
-import { styled } from '@mui/material/styles'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import IconButton from '@mui/material/IconButton'
-import CloseIcon from '@mui/icons-material/Close'
-import {
-  DataGrid,
-  GridActionsCellItem,
-  GridColDef,
-  GridRenderCellParams,
-  GridRowParams,
-} from '@mui/x-data-grid'
-import Grid from '@mui/material/Grid'
-import Popover from '@mui/material/Popover'
-import CloudDownload from '@mui/icons-material/CloudDownload'
-import { addDownload, isFullSeason, searchDownloads } from '../service'
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {ITorrent} from "../../../services/api/download.interface";
+import {downloadTorrentMutation, fetchMetadata, searchTorrentsQuery} from "../../../services/queries";
+import Loader from "../../../components/Loader";
+import Button from "../../../components/Button";
+import {IMetadata} from "../../../services/api/metadata.interface";
+import TextInput from "../../../components/TextInput";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {faChevronDown, faSearch} from "@fortawesome/free-solid-svg-icons";
+import React, {useEffect, useRef, useState} from "react";
+import CustomPopover from "../../../components/CustomPopover";
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  '& .MuiDialogContent-root': {
-    padding: theme.spacing(2),
-  },
-  '& .MuiDialogActions-root': {
-    padding: theme.spacing(1),
-  },
-}))
 
-export interface DialogTitleProps {
+interface SearchTorrentsProps {
+  query: string
+
+  type: string
+
   id: string
-  children?: React.ReactNode
-  onClose: () => void
 }
 
-const BootstrapDialogTitle = (props: DialogTitleProps) => {
-  const { children, onClose, ...other } = props
+var SIZES = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
-  return (
-    <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
-      {children}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  )
+function formatBytes(bytes, decimals) {
+  for (var i = 0, r = bytes, b = 1024; r > b; i++) r /= b;
+  return `${parseFloat(r.toFixed(decimals))} ${SIZES[i]}`;
 }
 
-export default function CustomizedDialogs({
-  onClose,
-  data,
-  open,
-}: {
-  data: any
-  open: boolean
-  onClose: () => void
-}) {
-  const [torrents, setTorrents] = useState<any[]>([])
-  const [loadingData, setLoadingData] = useState<boolean>(true)
-  const handleClose = () => {
-    onClose()
+export default function SearchTorrents({query, type, id}: SearchTorrentsProps) {
+  const queryClient = useQueryClient()
+  const ref = useRef(null);
+  const [inputSearchQuery, setInputSearchQuery] = useState(query)
+  const [searchQuery, setSearchQuery] = useState(query)
+  const {data: anime}: { data: IMetadata | undefined } = useQuery<IMetadata>(fetchMetadata(type, id))
+
+  const {data: results, isLoading, refetch} = useQuery<ITorrent[]>(searchTorrentsQuery(searchQuery, '1_0', 50))
+  const downloadTorrent = useMutation(downloadTorrentMutation(queryClient))
+
+  const handleChange = (e: React.FormEvent<HTMLInputElement>) => {
+    setInputSearchQuery((e.target as HTMLInputElement).value)
   }
-  const download = React.useCallback(
-    (params: GridRowParams) => () => {
-      const item = isFullSeason(params.row.torrentdata.files.length, data.episodes) ? 0 : 1
-      addDownload(data.title, params.row.magnet, params.row.torrent, item, params.row.hash).then(() => {
-        onClose()
-      })
-    },
-    [data],
-  )
-
-  const columns: GridColDef[] = React.useMemo(
-    () => [
-      { field: 'id', headerName: 'ID', width: 90 },
-      {
-        field: 'name',
-        headerName: 'Name',
-        flex: 0.3,
-        editable: false,
-      },
-      {
-        field: 'torrentdata',
-        headerName: 'Files',
-        renderCell: (params: GridRenderCellParams<{ files: any[] }>) => {
-          const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null)
-          const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-            setAnchorEl(event.currentTarget)
-          }
-          const handleClosePopOver = () => {
-            setAnchorEl(null)
-          }
-          const openPopover = Boolean(anchorEl)
-          const id = openPopover ? 'simple-popover' : undefined
-
-          return (
-            <>
-              <Button onClick={handleClick}>Show Files</Button>
-              <Popover
-                id={id}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'center',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'center',
-                }}
-                onClose={handleClosePopOver}
-                open={openPopover}
-              >
-                {params?.value?.files && (
-                  <div>
-                    {params.value.files.map((file: any) => (
-                      <div key={file.name}>
-                        {file.name}
-                        {' '}
-                        (
-                        {file.size}
-                        )
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Popover>
-            </>
-          )
-        },
-      },
-      {
-        field: 'seeders',
-        headerName: 'Seeders',
-        width: 100,
-      },
-      {
-        field: 'actions',
-        type: 'actions',
-        getActions: (params: any) => [
-          <GridActionsCellItem
-            icon={<CloudDownload />}
-            onClick={download(params)}
-            label="Download"
-          />,
-        ],
-      },
-    ],
-    [download],
-  )
 
   useEffect(() => {
-    if (data && open) {
-      setLoadingData(true)
-      setTorrents([])
-      const query = {
-        n: 50,
-        category: '1_0',
-        query: data.title,
-      }
-      searchDownloads(query).then((result) => {
-        console.log('dunno')
-        setTorrents(result)
-        setLoadingData(false)
-      })
-    }
-  }, [data, open])
+    refetch()
+  }, [])
 
   return (
-    <div>
-      <BootstrapDialog
-        fullWidth
-        maxWidth="xl"
-        onClose={onClose}
-        aria-labelledby="customized-dialog-title"
-        open={open}
-      >
-        <BootstrapDialogTitle id="customized-dialog-title" onClose={handleClose}>
-          Search Results for
-          {' '}
-          {`"${data?.title}"`}
-        </BootstrapDialogTitle>
-        <DialogContent dividers>
-          <Grid container p={4} style={{ height: 400, width: '100%' }}>
-            <DataGrid loading={loadingData} rows={torrents} columns={columns} />
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button autoFocus onClick={handleClose}>
-            Save changes
-          </Button>
-        </DialogActions>
-      </BootstrapDialog>
-    </div>
+    <>
+      <div className="flex flex-row space-x-2">
+        <TextInput ref={ref} label={"Search"} defaultValue={query} value={inputSearchQuery} onChange={handleChange}/>
+
+        <Button
+          className={"gow-0"}
+          onClick={() => {
+            setSearchQuery(inputSearchQuery)
+            refetch()
+          }}
+          showLabel={false}
+          icon={<FontAwesomeIcon icon={faSearch}/>}
+          label={"Test2"}
+        />
+      </div>
+
+      {isLoading ? <Loader/> : (
+        <div className="inline-block min-w-full overflow-hidden rounded-lg shadow m-auto">
+          <table className="table-auto leading-normal w-full">
+            <thead>
+            <tr>
+              <th scope="col"
+                  className="px-5 py-3 text-sm font-normal text-left text-gray-800 uppercase bg-white border-b border-gray-200"
+              >
+                Name
+              </th>
+              <th scope="col"
+                  className="px-5 py-3 text-sm font-normal text-left text-gray-800 uppercase bg-white border-b border-gray-200"
+              >
+                Size
+              </th>
+              <th scope="col"
+                  className="px-5 py-3 text-sm font-normal text-left text-gray-800 uppercase bg-white border-b border-gray-200"
+              >
+                Seeders
+              </th>
+              <th scope="col"
+                  className="px-5 py-3 text-sm font-normal text-left text-gray-800 uppercase bg-white border-b border-gray-200"
+              >
+                Leechers
+              </th>
+              <th scope="col"
+                  className="px-5 py-3 text-sm font-normal text-left text-gray-800 uppercase bg-white border-b border-gray-200"
+              >
+                Uploaded
+              </th>
+              <th
+                scope="col"
+                className="px-5 py-3 text-sm font-normal text-left text-gray-800 uppercase bg-white border-b border-gray-200"
+              >
+                Files
+              </th>
+              <th scope="col"
+                  className="px-5 py-3 text-sm font-normal text-left text-gray-800 uppercase bg-white border-b border-gray-200"
+              >
+                Download
+              </th>
+            </tr>
+            </thead>
+            <tbody>
+            {results && results.map((result) => (
+              <tr key={result.id}>
+                <td className="px-5 py-5 text-sm bg-white border-b border-gray-200">{result.name}</td>
+                <td className="px-5 py-5 text-sm bg-white border-b border-gray-200">{result.filesize}</td>
+                <td className="px-5 py-5 text-sm bg-white border-b border-gray-200">{result.seeders}</td>
+                <td className="px-5 py-5 text-sm bg-white border-b border-gray-200">{result.leechers}</td>
+                <td className="px-5 py-5 text-sm bg-white border-b border-gray-200">{result.date}</td>
+                <td className="px-5 py-5 text-sm bg-white border-b border-gray-200">
+                  {/*<a href={"#"} onClick={() => {}}> Show Files</a>*/}
+                  <CustomPopover
+                    label={<>File List
+                      <FontAwesomeIcon icon={faChevronDown} className="ui-open:rotate-180 ui-open:transform"/></>}
+                    maxHeight={"300px"}
+                  >
+                    <div className="flex flex-col space-y-2 bg-white">
+                      {result.torrentdata.files?.map((file, index) => (
+                        <div key={index} className="flex flex-row space-x-2">
+                          <div className="flex-grow">{file.name}</div>
+                          <div>{formatBytes(file.length, 2)}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                  </CustomPopover>
+                </td>
+                <td className="px-5 py-5 text-sm bg-white border-b border-gray-200">
+                  <Button
+                    onClick={() => downloadTorrent.mutate({
+                        mediaName: anime.name,
+                        magnetLink: result.magnet,
+                        url: result.torrent,
+                        item: 1,
+                        hash: result.hash,
+                      }
+                    )}
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                    label="Download"
+                  />
+                </td>
+              </tr>
+            ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
   )
+
+
 }

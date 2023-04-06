@@ -1,26 +1,4 @@
-export interface IMediaInput {
-
-  readonly name: string,
-  readonly type: string,
-  readonly anime: boolean,
-  readonly watch: boolean
-  readonly thetvdbid: string,
-}
-
-
-export interface IMedia {
-  id: string
-  name: string
-  type: string
-  anime: boolean
-  watch: boolean
-  thetvdbid: string
-  updatedAt: string
-  files: any[]
-  status: Status
-}
-
-export interface Status {
+export interface ITorrent {
   activityDate: number
   addedDate: number
   bandwidthPriority: number
@@ -72,7 +50,7 @@ export interface Status {
   seedRatioMode: number
   sizeWhenDone: number
   startDate: number
-  status: string
+  status: number
   torrentFile: string
   totalSize: number
   trackerStats: TrackerStat[]
@@ -96,30 +74,6 @@ export interface File {
   bytesCompleted: number
   length: number
   name: string
-  data: Data
-}
-
-export interface Data {
-  title: string
-  year?: string
-  resolution?: string
-  sources: string[]
-  revision: Revision
-  edition: Edition
-  languages: string[]
-  episode: any
-  season: any
-  group?: string
-  complete?: boolean
-}
-
-export interface Revision {
-  version: number
-  real: number
-}
-
-export interface Edition {
-  extended?: boolean
 }
 
 export interface Peer {

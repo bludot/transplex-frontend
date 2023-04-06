@@ -1,70 +1,41 @@
-import Divider from '@mui/material/Divider'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import ListItemIcon from '@mui/material/ListItemIcon'
-import ListItemText from '@mui/material/ListItemText'
-import Toolbar from '@mui/material/Toolbar'
-import MovieIcon from '@mui/icons-material/Movie'
-import React from 'react'
-import {
-  Link as RouterLink, BrowserRouter as Router, Switch, Route,
-} from 'react-router-dom'
-import SearchIcon from '@mui/icons-material/Search'
-import Dashboard from '../layouts/dashboard'
-// import ProtectedAuth from './components/protectedRoute'
+import {useState} from 'react'
+import reactLogo from '../assets/react.svg'
+import viteLogo from '/vite.svg'
+import Search from "../components/Search";
+import {SearchItem} from "../services/api/search";
+import api from '../services/api'
+import Header from "../components/Header";
+import {useQuery} from "@tanstack/react-query";
+import {IMediaInput} from "../services/api/media.interface";
+import {fetchMedia} from "../services/queries";
+import {Link} from "react-router-dom";
 
-function ListItemLink({ icon, primary, to }: { icon: any; primary: string; to: string }) {
-  const renderLink = React.useMemo(
-    () =>
-      // eslint-disable-next-line max-len
-      React.forwardRef<HTMLAnchorElement, any>((itemProps, ref) => (
-        <RouterLink to={to} ref={ref} {...itemProps} role={undefined} />
-      )),
-    [to],
-  )
+function Home() {
+  const {data: media}: { data: IMediaInput[] | undefined } = useQuery<IMediaInput[]>(fetchMedia())
+
 
   return (
-    <li>
-      <ListItem button component={renderLink}>
-        {icon ? <ListItemIcon>{icon}</ListItemIcon> : null}
-        <ListItemText primary={primary} />
-      </ListItem>
-    </li>
+    <>
+      <div className="flex flex-row justify-center min-h-screen py-2 space-x-4">
+        {/*  list items in media */}
+        {media && media.map((item) => (
+
+          <Link to={`/anime/series/${item.thetvdbid.replace(/[^0-9.]/gm, '')}`}>
+            <div className="flex flex-col items-center space-x-2">
+              <img
+                src={`${global.config.api_host}/metadata/anime/${item.thetvdbid.split('-')[0].toLowerCase()}/${item.thetvdbid.replace(/[^0-9.]/gm, '')}/poster`}
+                alt={item.name}
+                style={{width: '100px', height: 'auto'}}
+              />
+              <span>{item.name}</span>
+            </div>
+          </Link>
+
+        ))}
+      </div>
+
+    </>
   )
 }
 
-const drawer: React.ReactNode = (
-  <div>
-    <Toolbar />
-    <Divider />
-    <List>
-      <ListItemLink icon={<SearchIcon />} primary="Search" to="/search" />
-    </List>
-    <Divider />
-    <List>
-      <ListItemLink icon={<MovieIcon />} primary="Series" to="/series" />
-    </List>
-  </div>
-)
-
-export default function App() {
-  const Anime = React.lazy(() => import('./anime'))
-  const Series = React.lazy(() => import('./series'))
-  return (
-    <Router>
-      <Dashboard Sidebar={drawer}>
-        <Switch>
-          <Route exact path="/">
-            <h1>Welcome</h1>
-          </Route>
-          <Route exact path="/anime/:type/:id">
-            <Anime />
-          </Route>
-          <Route path="/series">
-            <Series />
-          </Route>
-        </Switch>
-      </Dashboard>
-    </Router>
-  )
-}
+export default Home
