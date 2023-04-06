@@ -6,7 +6,7 @@ export default {
     const { data }: {data: IMetadata & {readonly tags: string} } = await instance.get(`/metadata/anime/${type}/${id}`)
     return {
       ...data,
-      tags: [],
+      // tags: [],
       // tags: data.tags.split(','),
     }
   },

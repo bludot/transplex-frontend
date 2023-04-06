@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client'
 
-class SocketHanlder {
+class SocketHandler {
   private socket: Socket | any
 
   connect() {
@@ -18,6 +18,6 @@ class SocketHanlder {
   }
 }
 
-const socketHandler = new SocketHanlder()
+const socketHandler = new SocketHandler()
 
 export default socketHandler
